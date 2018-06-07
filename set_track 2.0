@@ -11,8 +11,9 @@ def load(stat,storage):
             d int 离开领地的距离
             _id int 我方的编号
             fields list[list[]] 二维数组，表示双方的领地
+        中间变量：（太多了）
         返回：
-            final list[list[]] 返回二维数组，值为1的点为路径
+            不返回值，生成的结果将保存在storage['track']中。结果为一个二维数组，0表示非路径，'t'表示路径
         Version:
             2.0: date:2018/6/7  by st   将本函数嵌入play
         '''
