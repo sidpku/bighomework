@@ -260,12 +260,10 @@ def isSafe(stat,storage):
         except TypeError:
             return False    #如果路径不存在，就返回False
 
-
-
     def isNowSafe(stat=stat,storage=storage):
         disMe2Home,null=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
         myid=stat['now']['me']['id']
-        disHe2Me,null=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'][myid-1])#敌人纸卷到我目前纸带的最短距离
+        disHe2Me,null=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'],pathmark=myid)#敌人纸卷到我目前纸带的最短距离
         if disMe2Home>disHe2Me-1:
             return False
         else:
@@ -273,7 +271,7 @@ def isSafe(stat,storage):
 
     def isNextStepSafe(stat=stat,storage=storage):
         disMe2Home=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
-        disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'][myid-1])#敌人纸卷到我目前纸带的最短距离
+        disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'],pathmark=stat['now']['me']['id'])#敌人纸卷到我目前纸带的最短距离
         if disMe2Home>disHe2Me-2:
             return False
         else:
@@ -360,9 +358,7 @@ def isSafe(stat,storage):
 
     def alongPath(myX,myY,path,stat):
         nextX,nextY=getNextPosition(myX,myY,path)
-
-
-        
+        return getRelativeDirection(myX,myY,nextX,nextY,stat)
 
     #第一部分：声明本函数中定义的函数
     my_x=stat['now']['me']['x']
