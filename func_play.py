@@ -17,11 +17,11 @@ def play(stat,storage):
 
     attack(stat)
     if storage['to_attack']==True:
-		null,AttackTrack=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=hisid-1,outputmark='t')#当前到圈地路径的路
-		nextX,nextY=getNextPosition(myX,myY,BackTrack)
-		return getRelativeDirection(myX,myY,nextX,nextY,stat)
-	else:
-		return is_safe(stat,storage)
+        null,AttackTrack=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=hisid-1,outputmark='t')#当前到圈地路径的路
+        nextX,nextY=getNextPosition(myX,myY,BackTrack)
+        return getRelativeDirection(myX,myY,nextX,nextY,stat)
+    else:
+        return is_safe(stat,storage)
 
 def load(stat,storage):
     from random import choice
