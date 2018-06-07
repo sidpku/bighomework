@@ -8,12 +8,11 @@ def find_path(stat,operate='me_to_home',pathstat=None,pathmark=None,outputmark='
         pathmark    字符串     默认None,自定义路径信息中的路径标记
         outputmark  字符串     默认mypath,输出路径信息中的路径标记
     返回：
-        finalpath   列表      路径列表，如[('mypath', 3, 2), ('mypath', 4, 2), ('mypath', 5, 2)]
+        outputpath   二维数组
         distance    字符串     路径长度
     版本：
         1.0：    童培峰
     存在问题：
-        输出finalpath还不是二维列表，下一版本改进
         出现同样distance的不同路径时如何寻找最优解
     '''
     if operate == 'me_to_home':
@@ -179,7 +178,10 @@ def find_path(stat,operate='me_to_home',pathstat=None,pathmark=None,outputmark='
                             if len(path) == temp_distance:
                                 distance = temp_distance
                                 finalpath = path
-    return finalpath, distance
+        outputpath = [[None for j in range(row_length)] for i in range(col_length)]
+        for item in finalpath:
+            outputpath[item[1]][item[2]]=item[0]
+    return outputpath, distance
 
 if __name__=='__main__':
     stat={}
@@ -193,7 +195,7 @@ if __name__=='__main__':
     stat['enemy']['id']=2
     stat['enemy']['x']=2
     stat['enemy']['y']=2
-    stat['fields'] = [[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0]]
+    stat['fields'] = [[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]]
     stat['bands'] = [[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,1,1,1,0,0]]
     finalpath, distance = find_path(stat,'me_to_home')
     print(distance)
