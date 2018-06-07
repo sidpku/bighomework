@@ -1,4 +1,4 @@
-def set_track(d=2,_id=1,fields=None,stat=None,):
+def set_track(d=2,_id=1,fields=None,stat=None):
     '''
     函数说明：更新圈地路径
     传入参数：
