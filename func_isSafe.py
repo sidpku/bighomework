@@ -1,3 +1,225 @@
+def find_path(stat,operate='me_to_home',pathstat=None,pathmark=None,outputmark='mypath'):
+    '''
+    寻路函数，寻找me/enemy到达各自领地，对方纸带，或给定路径的长度和路径
+    传入参数：
+        stat
+        operate     字符串     默认me_to_home，支持me_to_home, me_to_path, enemy_to_home, enemy_to_path
+        pathstat    二维数组    默认None,自定义的路径信息，配合_to_path两operate使用
+        pathmark    字符串     默认None,自定义路径信息中的路径标记
+        outputmark  字符串     默认mypath,输出路径信息中的路径标记
+    返回：
+        finalpath   列表      路径列表，如[('mypath', 3, 2), ('mypath', 4, 2), ('mypath', 5, 2)]
+        distance    字符串     路径长度
+    版本：
+        1.0：    童培峰
+    存在问题：
+        输出finalpath还不是二维列表，下一版本改进
+        出现同样distance的不同路径时如何寻找最优解
+    '''
+    pass
+
+def set_track(d=2, _id=1, fields=None):
+        '''
+        函数说明：更新圈地路径
+        传入参数：
+            d int 离开领地的距离
+            _id int 我方的编号
+            fields list[list[]] 二维数组，表示双方的领地
+        中间变量：（太多了）
+        返回：
+            不返回值，生成的结果将保存在storage['track']中。结果为一个二维数组，0表示非路径，'t'表示路径
+        Version:
+            2.0: date:2018/6/7  by st   将本函数嵌入play
+        '''
+        # 预处理
+        col, row, corner_list = len(fields), len(fields[0]), []
+        border = [[0 for y in range(row)] for x in range(col)]  # 边界数组，用于识别角
+        track = [[0 for y in range(row)] for x in range(col)]  # 路径数组
+
+        # 上下扫描和左右扫描,将每一边向外扩展d的距离
+        for x in range(col):
+            for y in range(row):
+                if fields[x][y] == _id:
+                    count = 0
+                    if y > 0 and fields[x][y - 1] != _id:
+                        track[x][max(0, y - d)] += 1
+                        count = 1
+                    if y < row - 1 and fields[x][y + 1] != _id:
+                        track[x][min(row - 1, y + d)] += 1
+                        count = 1
+                    border[x][y] += count
+        for y in range(row):
+            for x in range(col):
+                if fields[x][y] == _id:
+                    count = 0
+                    if x > 0 and fields[max(0, x - 1)][y] != _id:
+                        track[x - d][y] += 1
+                        count = 1
+                    if x < col - 1 and fields[x + 1][y] != _id:
+                        track[min(col - 1, x + d)][y] += 1
+                        count = 1
+                    border[x][y] += count
+                if border[x][y] == 2:
+                    corner_list.append((x, y))
+        # 将track中的值复制到border中（border原来的值已经没有意义）
+        for x in range(col):
+            for y in range(row):
+                border[x][y] = track[x][y]
+        # 处理角上的缺口
+        for i in corner_list:
+            x, y = i[0], i[1]
+            n = max(0, y - d)  # m和n用于保证不出界
+            if border[x][n] != 0:
+                m = max(0, x - d)
+                if border[m][y] != 0:
+                    for a in range(m, x):
+                        track[a][n] += 1
+                    for a in range(n, y):
+                        track[m][a] += 1
+                m = min(col - 1, x + d)
+                if border[m][y] != 0:
+                    for a in range(x + 1, m + 1):
+                        track[a][n] += 1
+                    for a in range(n, y):
+                        track[m][a] += 1
+            n = min(row - 1, y + d)
+            if border[x][n] != 0:
+                m = max(0, x - d)
+                if border[m][y] != 0:
+                    for a in range(m, x):
+                        track[a][n] += 1
+                    for a in range(y + 1, n + 1):
+                        track[m][a] += 1
+                m = min(col - 1, x + d)
+                if border[m][y] != 0:
+                    for a in range(x + 1, m + 1):
+                        track[a][n] += 1
+                    for a in range(y + 1, n + 1):
+                        track[m][a] += 1
+        # 去掉多余路径标记(通过模拟纸卷的行动）
+        x, y, stop, _min, min_x, min_y = 0, 0, False, float('inf'), 0, 0
+        while x < col:  # 初始定位
+            y = 0
+            while y < row:
+                if track[x][y] == 1:
+                    min_x, min_y, stop = x, y, True
+                    break
+                elif 1 < track[x][y] < _min:
+                    min_x, min_y = x, y
+                y += 1
+            if stop:
+                break
+            else:
+                x += 1
+        x, y = min_x, min_y
+        final = [[0 for b in range(row)] for a in range(col)]  # 最终返回值
+
+        # 路径评估函数（内部使用）
+        def evaluate_dir(x, y, label=''):
+            '''
+            函数说明：以上方法可能生成一些岔路（尤其是领地有凹角、凹边、飞地甚至更糟的时候），本函数将评估出合适的路径
+            传入参数：
+                x,y  int,int  待处理的位置坐标
+                label str 标记，即如何从上一个位置来到这里（向上、向下、向左、向右）
+            返回：
+                'left'or'right'or'up'or'down'or 'stop'
+            '''
+            if track[x][y] == 1:
+                if label == 'up':
+                    return label if y > 0 and track[x][y - 1] > 0 else 'stop'
+                elif label == 'down':
+                    return label if y < row - 1 and track[x][y + 1] > 0 else 'stop'
+                elif label == 'left':
+                    return label if x > 0 and track[x - 1][y] > 0 else 'stop'
+                elif label == 'right':
+                    return label if x < col - 1 and track[x + 1][y] > 0 else 'stop'
+            dis, _dir = 1, {'up': 0, 'down': 0, 'left': 0, 'right': 0}
+            while len(_dir) > 1:
+                if 'up' in _dir:
+                    _dir['up'] = track[x][y - dis] if y > dis - 1 else -1
+                if 'down' in _dir:
+                    _dir['down'] = track[x][y + dis] if y < row - dis else -1
+                if 'left' in _dir:
+                    _dir['left'] = track[x - dis][y] if x > dis - 1 else -1
+                if 'right' in _dir:
+                    _dir['right'] = track[x + dis][y] if x < col - dis else -1
+                m = max(_dir.values())
+                if m < 0:
+                    break
+                j = 0
+                while j < len(_dir):
+                    k = list(_dir.keys())[j]
+                    if _dir[k] < m:
+                        _dir.pop(k)
+                    else:
+                        j += 1
+                dis += 1
+            if 'up' in _dir:
+                _dir['up'] = track[x][y - 1] if y > 0 else -1
+            if 'down' in _dir:
+                _dir['down'] = track[x][y + 1] if y < row - 1 else -1
+            if 'left' in _dir:
+                _dir['left'] = track[x - 1][y] if x > 0 else -1
+            if 'right' in _dir:
+                _dir['right'] = track[x + 1][y] if x < col - 1 else -1
+            j = 0
+            while j < len(_dir):
+                k = list(_dir.keys())[j]
+                if _dir[k] < 1:
+                    _dir.pop(k)
+                else:
+                    j += 1
+            if 'up' in _dir:
+                return 'up'
+            elif 'down' in _dir:
+                return 'down'
+            elif 'left' in _dir:
+                return 'left'
+            elif 'right' in _dir:
+                return 'right'
+            else:
+                return 'stop'
+
+        # 开始模拟纸卷运动
+        prim_x, prim_y, prim_label = x, y, evaluate_dir(x, y)
+        label = prim_label
+        while True:
+            label = evaluate_dir(x, y, label)
+            final[x][y], track[x][y] = 1, -1
+            if label == 'up':
+                y -= 1
+            elif label == 'down':
+                y += 1
+            elif label == 'left':
+                x -= 1
+            elif label == 'right':
+                x += 1
+            else:
+                break
+        x, y = prim_x, prim_y
+        track[x][y] = 1
+        dd = ['up', 'left', 'down', 'right']
+        label = dd[(dd.index(prim_label) + 2) % 4]
+        while True:
+            label = evaluate_dir(x, y, label)
+            final[x][y], track[x][y] = 1, -1
+            if label == 'up':
+                y -= 1
+            elif label == 'down':
+                y += 1
+            elif label == 'left':
+                x -= 1
+            elif label == 'right':
+                x += 1
+            else:
+                break
+        for x in range(col):
+            for y in range(row):
+                if final[x][y]:
+                    final[x][y] = 't'
+        storage['track']=final
+
+
 def isSafe(stat,storage):
     '''
     本函数中定义的变量：
@@ -39,51 +261,23 @@ def isSafe(stat,storage):
             return False    #如果路径不存在，就返回False
 
 
-    #判断路径上的下一步是否安全的函数
-    def isNextStepSafe(x,y,path,storage):
-        '''
-        辅助函数说明：判断路径上的下一个位置，通过比较'路径上下一个位置回到领地的最短距离'和'对方到我当前纸带的最短距离'，判断是否会产生危险
-        传入函数说明：
-            x:  int 当前纸卷横坐标
-            y:  int 当前纸卷纵坐标
-            path:   list[list]  二维列表，指定的路径
-            storage:
-        返回：
-            True:   bool    如果指定路径上的下一个位置是安全的，就返回真
-            False:  bool    如果指定路径上的下一个位置是危险的，就返回假
-        version:
-            0.1:    date:2018/6/5   sid 整体架构建立，调用的辅助函数getNextPosition、isNowSafe还不够完整。这两个函数都需要用到童的函数。
-            0.2:    date:2018/6/7   sid getNextposition已经完成，同时考虑了找不到路径上下一个位置的情况，如果此时已经将所有的绕圈路径走完，
-            那么返回危险，纸卷会生成逃跑路径，往家的方向逃一部，然后再次调用回到圈地路径的时候，会发现圈地路径已经没有了，这种情况怎么办？
-        '''
-        #得到路径上下一个位置坐标
-        nextX,nextY=getNextPosition(x,y,path)
-        if nextX==False:
-            #找不到下一个位置坐标，直接返回危险（目的：在外层函数中实现回家）
-            return False
-        #进行安全的判断并返回
-        return isNowSafe(nextX,nextY,stat,storage)   #isNowSafe返回bool 
 
-    def isNowSafe(x,y,stat,torage):
-        '''
-        辅助函数说明：判断传入坐标的位置是否是安全的
-        传入参数说明：
-            x:  int
-            y:  int
-            storage:
-        返回：
-            True:   当前位置安全
-            False:  当前位置危险
-        version:
-            0.1 date:2018/6/5   sid 创建，因为不知道getdistance函数具体的参数模板，暂时无法使用
-        '''
-        disMe2Home=getdistance(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
-        disHe2Me=getdistance(stat,operate='enemy_to_path',pathstat=mypaper,pathmark=myid)#敌人纸卷到我目前纸带的最短距离
-        if disMe2Home<disHe2Me-1:
+    def isNowSafe(stat=stat,storage=storage):
+        disMe2Home,null=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
+        myid=stat['now']['me']['id']
+        disHe2Me,null=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'][myid-1])#敌人纸卷到我目前纸带的最短距离
+        if disMe2Home>disHe2Me-1:
             return False
         else:
             return True
 
+    def isNextStepSafe(stat=stat,storage=storage):
+        disMe2Home=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
+        disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'][myid-1])#敌人纸卷到我目前纸带的最短距离
+        if disMe2Home>disHe2Me-2:
+            return False
+        else:
+            return True
 
     #找到路径上下一个位置的函数
     def getNextPosition(x,y,path):
@@ -100,24 +294,15 @@ def isSafe(stat,storage):
             0.1：    date:2018/6/5   sid 建立架构，因为不知道path二维列表如何标记路径，还没有写具体的函数,还不能使用    
             1.0：    date:2018/6/7   sid 将代码补充完整，调用辅助函数isOnTrack.辅助函数的标记还是一个问题。同时增加找不到下一个位置的情况，就返回 False,False
         '''
-        if isOnTrack(x,y,path):
-            #如果(x,y)在路径上，则按照北东南西的顺序，寻找下一个位置
-            if isOnTrack(x,y-1,path):
-                return  x,y-1
-            elif isOnTrack(x+1,y,path):
-                return x+1,y
-            elif isOnTrack(x,y+1,path):
-                return x,y+1
-            elif isOnTrack(x-1,y,path):
-                return x-1,y
-            else:
-                print("整个路径只剩下一个点了，没有下一个位置")           #！！！这是一个用来debug的语句，最后需要将他排除掉！！！
-                '''
-                这其实是一种存在的情况，如果圈地路径是闭合的，那么绕着圈地路径走完一圈，下一部就要走到自己纸带上的时候，就会出现没有下一个，暂定返回 False,Fasle 吧
-                '''
-                return False,False
+        if isOnTrack(x,y-1,path):
+            return  x,y-1
+        elif isOnTrack(x+1,y,path):
+            return x+1,y
+        elif isOnTrack(x,y+1,path):
+            return x,y+1
+        elif isOnTrack(x-1,y,path):
+            return x-1,y
         else:
-            print("坐标（x,y）不在该路径上，不能找到该路径上的下一个位置")   #！！！这是一个用来debug的语句，最后需要将他删除掉！！！
             return False,False
             
     def getRelativeDirection(myX,myY,nextX,nextY,stat):
@@ -160,24 +345,21 @@ def isSafe(stat,storage):
         elif relativedirection==3:
             return 'left'
     
-    def back_track(myX,myY,stat,storage):
-        '''
-        辅助函数说明：返回一个到圈地路径的相对方向
-        传入参数：
-            myX:    int 当前的横坐标
-            myY：   int 当前的纵坐标
-            stat
-            storage
-        传出参数：
-            'left'
-            'right'
-            'straight'
-        version:
-            0.1:    date:2018/6/7   sid     创建
-        '''
-        null,BackTrack=findpath()#当前到圈地路径的路
-        nextX,nextY=getNextPosition(myX,myY,BackTrack)
+    def back_track(myX,myY,stat):
+        if isNextStepSafe():
+            null,BackTrack=find_path(stat,operate='me_to_path',pathstat=storage['track'],pathmark='t',outputmark='t')#当前到圈地路径的路
+            nextX,nextY=getNextPosition(myX,myY,BackTrack)
+            return getRelativeDirection(myX,myY,nextX,nextY,stat)
+        else:
+            return False
+
+    def back_home(myX,myY,stat):
+        null,EscapeTrack=find_path(stat,operate='me_to_home',outputmark='t')
+        nextX,nextY=getNextPosition(myX,myY,EscapeTrack)
         return getRelativeDirection(myX,myY,nextX,nextY,stat)
+
+    def alongPath(myX,myY,path,stat):
+        nextX,nextY=getNextPosition(myX,myY,path)
 
 
         
@@ -185,53 +367,38 @@ def isSafe(stat,storage):
     #第一部分：声明本函数中定义的函数
     my_x=stat['now']['me']['x']
     my_y=stat['now']['me']['y']
-    RoundTrack=storage['RoundTrack']    #这里需要自己后面将生成的路径放到storage中？？？这里如果还没生成roundtrack怎么办？
     no_tag=0    #路径二维数组中，将路径擦除就将它变成0
+    track_tag='t'
+    switch=storage['switch']
+
     try:
-        EscapeTrack=storage['EscapeTrack']
-    #判断是否在圈地路径上：
+        RoundTrack=storage['track']
+    except KeyError:
+        RoundTrack=None
     if isOnTrack(my_x,my_y,RoundTrack):
-        #已知在圈地路径上，判断圈地路径上下一个位置是否安全
-        if isNextStepSafe():
-            #安全，沿着路径走，返回下一个位置的绝对坐标
-            nextX,nextY=getNextPosition(my_x,my_y,RoundTrack)
-            #将当前位置的路径标记擦除
-            RoundTrack[my_x][my_y]=no_tag
-            #将坐标转换为相对方向
-            dirc=getRelativeDirection(my_x,my_y,nextX,nextY,stat)
-            #返回转向指令
-            return dirc
-        else:#不安全，返回逃跑路径，沿着逃跑路径走
-            #创建逃跑路径，存到storage中
-            null,storage['EscapeTrack']=findpath()
-            #返回沿着逃跑路径走的一个方向（并将逃跑路径标记抹除）
-            nextX,nextY=getNextPosition(my_x,my_y,storage['EscapeTrack'])
-            storage['EscapeTrack'][my_x][my_y]=no_tag
-            return  getRelativeDirection(my_x,my_y,nextX,nextY,stat)
-    else:#如果不在圈地路径上
-        if isOnTrack(my_x,my_y,EscapeTrack):
-            #如果在逃跑路径上
-            if isNowSafe(my_x,my_y,stat,storage):
-                #调用函数back_track
-                null,BackTrack=findpath()
-
-               
-                #将逃跑路径清空
-                storage['EscapeTrack']=None
-                return  back_track(my_x,my_y,stat,storage)
-            else:#逃跑过程中一直处于不安全的状态
-                #得到逃跑路径上的下一个坐标
-                nextX,nextY=getNextPosition(my_x,my_y,EscapeTrack)
-                #将当前位置的逃跑路径标记擦除
-                EscapeTrack[my_x][my_y]=no_tag
-                #转换为相对方向
+        RoundTrack[my_x][my_y]=0
+        nextX,nextY=getNextPosition(my_x,my_y,RoundTrack)
+        if nextX==False:
+            switch=True
+            return back_home(my_x,my_y,stat)
+        else:
+            if isNextStepSafe(my_x,my_y,RoundTrack):
                 return getRelativeDirection(my_x,my_y,nextX,nextY,stat)
-                #返回转向指令
-        elif stat[my_x][my_y]:#如果不在逃跑路径上，那就是在领地中，或者是想要回到
-            #调用函数back_track
-            return back_track(my_x,my_y,stat,storage)
-
-
-        
-
+            else:
+                return back_home(my_x,my_y,stat,storage)
+    elif stat['now']['fields'][my_x][my_y]==stat['now']['me']['id']:
+        d=function2produced(stat,storage)##### waiting to  write
+        switch=False
+        set_track(d,stat['now']['me']['id'],stat['now']['fields'])
+        return  back_track(my_x,my_y,stat)### waiting to write
+    else:
+        if switch==True:
+            return back_home(my_x,my_y,stat)
+        else:
+            dirc=back_track
+            if dirc:
+                return dirc
+            else:
+                return back_home(my_x,my_y,stat)
+    
 
