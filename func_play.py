@@ -11,13 +11,13 @@ def play(stat,storage):
     evaluate_d=storage['evaluate_d']
 
 
-    if storage['start']==Ture:
+    if storage['to_start']==True:#为了方便测试，暂时先不用秦晓宇的函数
     	#调用秦晓宇的函数，生成路径
     	storage['to_start']=False
 
     attack(stat)
     if storage['to_attack']==True:
-        null,AttackTrack=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=hisid-1,outputmark='t')#当前到圈地路径的路
+        null,AttackTrack=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=hisid,outputmark='t')#当前到圈地路径的路
         nextX,nextY=getNextPosition(myX,myY,BackTrack)
         return getRelativeDirection(myX,myY,nextX,nextY,stat)
     else:
@@ -28,7 +28,7 @@ def load(stat,storage):
 
     #变量初始化区域
     storage['switch']=False
-    storage['start']=True
+    storage['to_start']=True
     storage['to_attack']=False
     
 
@@ -43,7 +43,7 @@ def load(stat,storage):
         me_attack_path,me_attack_distance=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=stat['now']['enemy']['id'],outputmark='suppose')
         enemy_home_path,enemy_home_distance=find_path(stat,operate='enemy_to_home')
         enemy_me_path,enemy_me_distance=find_path(stat,operate='enemy_to_path',pathstat=me_attack_path,pathmark='suppose')
-        if me_attack_distance<enemy_home_distance and me_attack_distance<enemy_me_distanc11e:
+        if me_attack_distance<enemy_home_distance and me_attack_distance<enemy_me_distance:
             storage['to_attack']=True	
         else:
             pass
@@ -292,7 +292,7 @@ def load(stat,storage):
 
         isOnTrack=storage['isOnTrack']
         isNowSafe=storage['isNowSafe']
-        storage['isNextStepSafe']
+        isNextStepSafe=storage['isNextStepSafe']
         getNextPosition=storage['getNextPosition']
         getRelativeDirection=storage['getRelativeDiraction']
         back_track=storage['back_track']
@@ -309,10 +309,10 @@ def load(stat,storage):
                 switch=True
                 return back_home(my_x,my_y,stat)
             else:
-                if isNextStepSafe(my_x,my_y,RoundTrack):
+                if isNextStepSafe():
                     return getRelativeDirection(my_x,my_y,nextX,nextY,stat)
                 else:
-                    return back_home(my_x,my_y,stat,storage)
+                    return back_home(my_x,my_y,stat)
         elif stat['now']['fields'][my_x][my_y]==stat['now']['me']['id']:
             d=evaluate_d(stat) 
             switch=False
@@ -361,9 +361,9 @@ def load(stat,storage):
             return True
 
     def isNextStepSafe(stat=stat,storage=storage):
-        disMe2Home=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
-        disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'],pathmark=stat['now']['me']['id'])#敌人纸卷到我目前纸带的最短距离
-        if disMe2Home>disHe2Me-2:
+        null,disMe2Home=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
+        null,disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'],pathmark=stat['now']['me']['id'])#敌人纸卷到我目前纸带的最短距离
+        if disMe2Home>disHe2Me-30:
             return False
         else:
             return True
@@ -383,6 +383,8 @@ def load(stat,storage):
             0.1：    date:2018/6/5   sid 建立架构，因为不知道path二维列表如何标记路径，还没有写具体的函数,还不能使用    
             1.0：    date:2018/6/7   sid 将代码补充完整，调用辅助函数isOnTrack.辅助函数的标记还是一个问题。同时增加找不到下一个位置的情况，就返回 False,False
         '''
+        x=int(x)
+        y=int(y)
         if isOnTrack(x,y-1,path):
             return  x,y-1
         elif isOnTrack(x+1,y,path):
