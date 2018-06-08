@@ -14,8 +14,10 @@ def play(stat,storage):
     beginning=storage['beginning']
     getNextPosition=storage['getNextPosition']
     getRelativeDirection=storage['getRelativeDirection']
+    
+    print(storage['switch'])
 
-    if storage['to_start']==True:#为了方便测试，暂时先不用秦晓宇的函数
+    if storage['to_start']==True:
         #调用秦晓宇的函数，生成路径
         if storage['count']<3:
             storage['count']+=1
@@ -25,17 +27,18 @@ def play(stat,storage):
 
     attack(stat)
     if storage['to_attack']==True:
-        null,AttackTrack=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=hisid,outputmark='t')#当前到圈地路径的路
+        AttackTrack,null=find_path(stat,operate='me_to_path',pathstat=stat['now']['bands'],pathmark=hisid,outputmark='t')#当前到圈地路径的路
         nextX,nextY=getNextPosition(myX,myY,AttackTrack)
         return getRelativeDirection(myX,myY,nextX,nextY,stat)
     else:
-        return is_safe(stat,storage)
+        tmp=is_safe(stat,storage)
+        return tmp
 
 def load(stat,storage):
     from random import choice
 
     #变量初始化区域
-    storage['switch']=True
+    storage['switch']=False
     storage['to_start']=True
     storage['to_attack']=False
     storage['count']=0
@@ -344,8 +347,6 @@ def load(stat,storage):
         my_y=stat['now']['me']['y']
         no_tag=0    #路径二维数组中，将路径擦除就将它变成0
         track_tag='t'
-        switch=storage['switch']
-
         isOnTrack=storage['isOnTrack']
         isNowSafe=storage['isNowSafe']
         isNextStepSafe=storage['isNextStepSafe']
@@ -362,7 +363,7 @@ def load(stat,storage):
             RoundTrack[my_x][my_y]=0
             nextX,nextY=getNextPosition(my_x,my_y,RoundTrack)
             if nextX==False:
-                switch=True
+                storage['switch']=True
                 return back_home(my_x,my_y,stat)
             else:
                 if isNextStepSafe():
@@ -370,15 +371,16 @@ def load(stat,storage):
                 else:
                     return back_home(my_x,my_y,stat)
         elif stat['now']['fields'][my_x][my_y]==stat['now']['me']['id']:
-            if switch==False:
+            storage['switch']=False
+            if storage['to_start']==False:
                 d=evaluate_d(stat) 
                 set_track(d,stat['now']['me']['id'],stat['now']['fields'])
             return  back_track(my_x,my_y,stat)### waiting to write
         else:
-            if switch==True:
+            if storage['switch']==True:
                 return back_home(my_x,my_y,stat)
             else:
-                dirc=back_track
+                dirc=back_track(my_x,my_y,stat)
                 if dirc:
                     return dirc
                 else:
@@ -411,7 +413,7 @@ def load(stat,storage):
         null,disMe2Home=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
         myid=stat['now']['me']['id']
         null,disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'],pathmark=myid)#敌人纸卷到我目前纸带的最短距离
-        if disMe2Home>disHe2Me-1:
+        if disMe2Home>disHe2Me-5:
             return False
         else:
             return True
@@ -419,7 +421,7 @@ def load(stat,storage):
     def isNextStepSafe(stat=stat,storage=storage):
         null,disMe2Home=find_path(stat,operate='me_to_home')#当前位置我纸卷到领地的最短距离
         null,disHe2Me=find_path(stat,operate='enemy_to_path',pathstat=stat['now']['bands'],pathmark=stat['now']['me']['id'])#敌人纸卷到我目前纸带的最短距离
-        if disMe2Home>disHe2Me-2:
+        if disMe2Home>disHe2Me-6:
             return False
         else:
             return True
@@ -473,13 +475,13 @@ def load(stat,storage):
         moveY=nextY-myY
         if moveX==0:
             if moveY==1:
-                newdirection=0
+                newdirection=1
             else:
-                newdirection=2
+                newdirection=3
         elif moveX==1:
-            newdirection=1
+            newdirection=0
         else:
-            newdirection=3
+            newdirection=2
         relativedirection=newdirection-mydirection
         if relativedirection==1:
             return  'right'
@@ -496,8 +498,7 @@ def load(stat,storage):
         if isNextStepSafe():
             BackTrack,null=find_path(stat,operate='me_to_path',pathstat=storage['track'],pathmark='t',outputmark='t')#当前到圈地路径的路
             nextX,nextY=getNextPosition(myX,myY,BackTrack)
-            a=getRelativeDirection(myX,myY,nextX,nextY,stat)
-            print(a)
+            print(nextX,nextY)
             return getRelativeDirection(myX,myY,nextX,nextY,stat)
         else:
             return False
