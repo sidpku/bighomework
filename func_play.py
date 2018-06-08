@@ -9,11 +9,15 @@ def play(stat,storage):
     is_safe=storage['is_safe']
     attack=storage['attack']
     evaluate_d=storage['evaluate_d']
-
+    beginning=storage['beginning']
 
     if storage['to_start']==True:#为了方便测试，暂时先不用秦晓宇的函数
     	#调用秦晓宇的函数，生成路径
-    	storage['to_start']=False
+        if storage['count']<3:
+            storage['count']+=1
+            beginning(stat,storage)
+        else:
+            storage['to_start']=False
 
     attack(stat)
     if storage['to_attack']==True:
@@ -27,10 +31,58 @@ def load(stat,storage):
     from random import choice
 
     #变量初始化区域
-    storage['switch']=False
+    storage['switch']=True
     storage['to_start']=True
     storage['to_attack']=False
+    storage['count']=0
     
+    
+    def beginning(stat, storage):   #效果与set_track类似
+
+        if 'track' not in storage:  # 只需在第一步运行一次
+            path = [[0 for x in range(stat['size'][0])] for y in range(stat['size'][1])]
+            distance = abs(stat['now']['me']['x'] - stat['now']['enemy']['x']) + abs(
+                stat['now']['me']['y'] - stat['now']['enemy']['y']) - 1  # 对方到我方的最短距离
+
+            # 确定周长
+            if distance % 2 == 0:
+                c = distance
+            else:
+                c = distance - 1
+            # 确定长和宽
+            length = c // 4
+            width = c // 2 - length
+            x1,y1 = int(stat['now']['me']['x']),int(stat['now']['me']['y'])
+            storage['begin_x'],storage['begin_y']=x1,y1
+            # 根据初始位置和初始方向划定开局时围出的图形
+            if x1 < 50:
+                if stat['now']['me']['direction'] != 1:
+                    for k in range(length):
+                        path[x1][y1 + 1 + k] ,path[x1 - 1 - width][y1 + 1 + k]= 1,1
+                    for k in range(width):
+                        path[x1 + 1 + k][y1 + 1] ,path[x1 + 1 + k][y1 + 2 + length]= 1,1
+                else:
+                    for k in range(length):
+                        path[x1][y1 + 1 + k] ,path[x1 - 1 - width][y1 + 1 + k]= 1,1
+                    for k in range(width):
+                        path[x1 + 1 + k][y1 - 1] ,path[x1 + 1 + k][y1 - 2 - length]= 1,1
+            elif x1 > 50:
+                if stat['now']['me']['direction'] != 1:
+                    for k in range(length):
+                        path[x1][y1 + 1 + k] ,path[x1 + 1 + width][y1 + 1 + k]= 1,1
+                    for k in range(width):
+                        path[x1 + 1 + k][y1 + 1] ,path[x1 + 1 + k][y1 + 2 + length]= 1,1
+                else:
+                    for k in range(length):
+                        path[x1][y1 + 1 + k] ,path[x1 + 1 + width][y1 + 1 + k]= 1,1
+                    for k in range(width):
+                        path[x1 + 1 + k][y1 - 1] ,path[x1 + 1 + k][y1 - 2 - length]= 1,1
+            storage['track'] = path
+
+        # 判断是否围完一圈
+        if abs(storage['begin_x'] - stat['now']['me']['x']) == 1 and abs(storage['begin_y'] - stat['now']['me']['y']) == 1:
+            storage['start'] = False
+
 
     def attack(stat):
         '''
@@ -314,9 +366,9 @@ def load(stat,storage):
                 else:
                     return back_home(my_x,my_y,stat)
         elif stat['now']['fields'][my_x][my_y]==stat['now']['me']['id']:
-            d=evaluate_d(stat) 
-            switch=False
-            set_track(d,stat['now']['me']['id'],stat['now']['fields'])
+            if switch==False:
+                d=evaluate_d(stat) 
+                set_track(d,stat['now']['me']['id'],stat['now']['fields'])
             return  back_track(my_x,my_y,stat)### waiting to write
         else:
             if switch==True:
@@ -646,5 +698,6 @@ def load(stat,storage):
     storage['getRelativeDiraction']=getRelativeDirection
     storage['back_track']=back_track
     storage['back_home']=back_home
+    storage['beginning']=beginning
 
     
