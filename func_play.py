@@ -1,6 +1,7 @@
 def play(stat,storage):
     '''
     '''
+    return 'left'
     myid=stat['now']['me']['id']
     hisid=stat['now']['enemy']['id']
 
@@ -492,6 +493,8 @@ def load(stat,storage):
         if isNextStepSafe():
             null,BackTrack=find_path(stat,operate='me_to_path',pathstat=storage['track'],pathmark='t',outputmark='t')#当前到圈地路径的路
             nextX,nextY=getNextPosition(myX,myY,BackTrack)
+            a=getRelativeDirection(myX,myY,nextX,nextY,stat)
+            print(a)
             return getRelativeDirection(myX,myY,nextX,nextY,stat)
         else:
             return False
